@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Websocket Example</title>
+		<script src="https://cdn.socket.io/socket.io-1.4.5.js"></script>
+		<script>
+			function canvasSupport () { return !!document.createElement('canvas').getContext; }
+			
+			var socket;
+			var canvas;
+			var context; 
+			var radius = 30;
+			var w, h;
+			
+			function init(){
+				console.log("init()");
+				
+				// Initialize canvas
+				if (!canvasSupport()) { return; }
+				canvas = document.getElementById('canvas');
+				context = canvas.getContext('2d');
+				w = canvas.width;
+				h = canvas.height;
+				
+				canvas.addEventListener("click", function (event) { 
+					var mouseX = event.clientX - canvas.offsetLeft;
+					var mouseY = event.clientY - canvas.offsetTop;
+					drawCircle(mouseX, mouseY, radius, '#00EEEE');
+					
+					console.log("send: x : " + mouseX + ", y : " + mouseY);
+					socket.emit('mouse', {x: mouseX, y: mouseY});
+				}, false);
+			
+				socket = io.connect('http://localhost:3000');
+				socket.on('mouse', function(data){
+					console.log("received: " + data);
+					drawCircle(data.x, data.y, radius, '#0000EE');
+				});
+			}
+			
+			function onClick(button){
+				console.log("onClick() : " + button.id);
+				switch(button.id){
+					case "clear":
+						context.clearRect(0, 0, w, h);
+						break;
+					case "random":
+						var x = Math.floor(Math.random()*w);
+						var y = Math.floor(Math.random()*h);
+						drawCircle(x, y, radius, '#00EE00');
+						socket.emit('mouse', {x: x, y: y});
+						break;
+				}
+			}
+			
+			function drawCircle(x, y, r, color){
+				context.beginPath();
+				context.arc(x, y, radius, 0, 2 * Math.PI, false);
+				context.fillStyle = color;
+				context.fill();
+				context.closePath();
+			}
+		</script>
+	</head>
+	<body onload="init()">		
+		<div>
+			<canvas id="canvas" width="500" height="500" 
+				style="position:absolute; top:10px; left:10px; border:1px solid #000000">
+				Your browser does not support HTML5 Canvas.
+			</canvas>
+		</div>
+		<div style="position: absolute; top: 520px; left: 10px;">
+			<form>
+				<button type="button" onclick="onClick(this)" id="clear" > Clear  </button>
+				<button type="button" onclick="onClick(this)" id="random"> Random </button>
+			</form>
+		</div>
+	</body>
+</html>
